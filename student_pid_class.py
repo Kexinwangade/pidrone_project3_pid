@@ -1,4 +1,4 @@
-
+from __future__ import division
 
 
 class PID:
@@ -23,8 +23,18 @@ class PID:
         :param kd: The derivative gain constant
         :param k: The offset constant that will be added to the sum of the P, I, and D control terms
         """
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.k = k
 
-        pass
+        # 初始化 P, I, D 控制项
+        
+
+        # 初始化额外的变量
+        self._previous_error = 0
+        self._cumulative_error = 0
+
 
     def step(self, err, dt):
         """
@@ -39,8 +49,25 @@ class PID:
         :returns: You should restrict your output to be between 1100 and 1900. This is a PWM command, which will be
                   sent to the SkyLine's throttle channel
         """
+        # 更新 P, I, D 控制项
+        #P
+        self._p = self.kp * err
+        #I
+        self._cumulative_error += err * dt
+        self._i = self.ki * self._cumulative_error
+        if dt > 0:  # 防止除以零
+            self._d = self.kd * ((err - self._previous_error) / dt)
+        else:
+            self._d = 0
 
-        return 1100
+        # 更新前一个误差值
+        self._previous_error = err
+
+        # 计算总输出
+        output = self._p + self._i + self._d + self.k
+
+        # 限制输出范围
+        return max(1100, min(1900, output))
 
     def reset(self):
         """
@@ -48,5 +75,11 @@ class PID:
         from armed mode to flying mode. You will want to reset the PID terms so that previously stored values will
         not affect the current calculations (think about what this entails)!
         """
+        # 重置积分项和微分项相关的内部变量
+        self._cumulative_error = 0  # 重置累积误差
+        self._previous_error = 0    # 重置上一次的误差
 
-        pass
+        # 也可以选择重置 P, I, D 控制项本身，如果需要的话
+        self._p = 0
+        self._i = 0
+        self._d = 0
